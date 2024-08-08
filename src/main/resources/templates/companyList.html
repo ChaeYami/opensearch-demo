@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Company List</title>
+</head>
+<body>
+<h1 th:text="'Company: ' + ${companyName}">Company: </h1>
+<ul>
+    <li th:each="entity : ${entities}">
+        <span th:text="${entity.id}">ID</span>:
+        <span th:text="${entity.name}">Name</span>
+    </li>
+</ul>
+</body>
+</html>

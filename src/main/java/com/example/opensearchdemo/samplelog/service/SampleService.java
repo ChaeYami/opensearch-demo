@@ -1,9 +1,8 @@
-package com.example.opensearchdemo.samplelog;
+package com.example.opensearchdemo.samplelog.service;
 
+import com.example.opensearchdemo.samplelog.dto.AlertDTO;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.FieldValue;
-import org.opensearch.client.opensearch._types.SortOptions;
-import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.IndexRequest;
 import org.opensearch.client.opensearch.core.IndexResponse;
@@ -37,7 +36,7 @@ public class SampleService {
         return response.result().toString();
     }
 
-    public SearchResponse searchAlerts(String indexName, String appliance, String name, String severity, String sortField, String sortOrder) throws IOException {
+    public SearchResponse<AlertDTO> searchAlerts(String indexName, String appliance, String name, String severity) throws IOException {
         List<Query> mustQueries = new ArrayList<>();
 
         if (appliance != null && !appliance.isEmpty()) {
@@ -45,24 +44,18 @@ public class SampleService {
         }
 
         if (name != null && !name.isEmpty()) {
-            mustQueries.add(Query.of(q -> q.match(m -> m.field("name").query(FieldValue.of(name)))));
+            mustQueries.add(Query.of(q -> q.match(m -> m.field("alert.explanation.malware-detected.malware.name").query(FieldValue.of(name)))));
         }
 
         if (severity != null && !severity.isEmpty()) {
-            mustQueries.add(Query.of(q -> q.match(m -> m.field("severity").query(FieldValue.of(severity)))));
-        }
-
-        List<SortOptions> sortOptions = new ArrayList<>();
-        if (sortField != null && !sortField.isEmpty()) {
-            sortOptions.add(SortOptions.of(s -> s.field(f -> f.field(sortField).order(SortOrder.valueOf(sortOrder.toUpperCase())))));
+            mustQueries.add(Query.of(q -> q.match(m -> m.field("alert.severity").query(FieldValue.of(severity)))));
         }
 
         SearchRequest searchRequest = new SearchRequest.Builder()
                 .index(indexName)
                 .query(q -> q.bool(b -> b.must(mustQueries)))
-                .sort(sortOptions)
                 .build();
 
-        return openSearchClient.search(searchRequest, Object.class);
+        return openSearchClient.search(searchRequest, AlertDTO.class);
     }
 }

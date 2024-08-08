@@ -18,18 +18,27 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+	// spring boot
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	implementation 'org.opensearch.client:opensearch-java:2.11.1'
-	implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
+	// opensearch
+	implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+	implementation 'org.opensearch.client:opensearch-java:2.8.1'
+
+	// httpclient 5
+	implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+
+	// lombok
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	// apache common
+	implementation 'org.apache.commons:commons-lang3:3.11'
 }
 
 tasks.named('test') {

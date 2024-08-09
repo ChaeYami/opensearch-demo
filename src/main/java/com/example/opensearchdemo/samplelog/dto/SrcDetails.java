@@ -1,3 +1,4 @@
+/*
 package com.example.opensearchdemo.samplelog.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -14,3 +15,4 @@ public class SrcDetails {
 
     // Getter와 Setter 생략
 }
+*/

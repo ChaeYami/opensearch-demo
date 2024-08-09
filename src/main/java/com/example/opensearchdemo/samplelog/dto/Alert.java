@@ -1,3 +1,4 @@
+/*
 package com.example.opensearchdemo.samplelog.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -20,3 +21,4 @@ public class Alert {
     private String name;          // 경고 이름
     private String severity;      // 심각도
 }
+*/

@@ -28,9 +28,11 @@ public class SampleController {
     public List<AlertDTO> searchAlerts(
             @RequestParam(required = false) String appliance,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String severity
+            @RequestParam(required = false) String severity,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortOrder
     ) throws IOException {
-        SearchResponse<AlertDTO> response = sampleService.searchAlerts("alerts", appliance, name, severity);
+        SearchResponse<AlertDTO> response = sampleService.searchAlerts("alerts", appliance, name, severity, sortField, sortOrder);
         return response.hits().hits().stream()
                 .map(hit -> hit.source())
                 .collect(Collectors.toList());

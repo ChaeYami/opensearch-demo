@@ -4,13 +4,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOrder;
+import org.opensearch.client.opensearch._types.mapping.FieldMapping;
 import org.opensearch.client.opensearch._types.query_dsl.*;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.search.Hit;
+import org.opensearch.client.opensearch.indices.GetFieldMappingRequest;
+import org.opensearch.client.opensearch.indices.GetFieldMappingResponse;
+import org.opensearch.client.opensearch.indices.GetMappingRequest;
+import org.opensearch.client.opensearch.indices.GetMappingResponse;
+import org.opensearch.client.opensearch.indices.get_field_mapping.TypeFieldMappings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -220,5 +227,55 @@ public class DemoService {
                 .map(hit -> hit.source())
                 .collect(Collectors.toList());
     }
+
+
+    /**
+     * 필드의 타입을 가져옵니다.
+     * @param index 인덱스명
+     * @return 필드 타입
+     * @throws IOException
+     */
+    public String getFieldType(String index) throws IOException {
+        // 매핑 요청 생성
+        GetFieldMappingRequest mappingRequest = new GetFieldMappingRequest.Builder().index(index).fields("*").build();
+
+
+        // 매핑 응답 가져오기
+        GetFieldMappingResponse mappingResponse = openSearchClient.indices().getFieldMapping(mappingRequest);
+
+        // 매핑 정보 추출
+        Map<String, TypeFieldMappings> mappings = mappingResponse.result();
+
+
+
+        StringBuilder result = new StringBuilder();
+
+        // 매핑된 필드와 타입을 추출하여 문자열로 변환
+        for (Map.Entry<String, TypeFieldMappings> indexEntry : mappings.entrySet()) {
+            String indexName = indexEntry.getKey(); // 인덱스명
+            TypeFieldMappings typeFieldMappings = indexEntry.getValue(); // TypeFieldMappings 객체
+
+            result.append("Index: ").append(indexName).append("\n");
+
+            // TypeFieldMappings에서 필드와 필드 타입 추출
+            Map<String, FieldMapping> fields = typeFieldMappings.mappings();
+
+            for (Map.Entry<String, FieldMapping> fieldEntry : fields.entrySet()) {
+                String fieldName = fieldEntry.getKey(); // 필드명
+                FieldMapping fieldMapping = fieldEntry.getValue();
+
+/*
+                // 필드 타입 추출
+                String fieldType = fieldMapping.mapping().get("type").toString();
+
+                result.append("Field: ").append(fieldName).append(", Type: ").append(fieldType).append("\n");*/
+            }
+        }
+
+        return result.toString();
+
+    }
+
+
 
 }

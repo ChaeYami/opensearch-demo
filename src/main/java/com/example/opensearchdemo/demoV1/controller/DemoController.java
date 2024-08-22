@@ -26,13 +26,14 @@ public class DemoController {
 
     /**
      * 인덱스 검색 (전체 문서 가져오기)
+     *
      * @param indexName 인덱스명
      * @return
      * @throws IOException
      */
     @GetMapping("/index")
     public List<JsonNode> searchFields(@RequestParam String indexName)
-            throws IOException{
+            throws IOException {
         List<JsonNode> result = demoService.searchIndex(indexName);
 
         return result;
@@ -41,6 +42,7 @@ public class DemoController {
 
     /**
      * 필드값 가져오기
+     *
      * @param indexName 인덱스명
      * @return
      * @throws IOException
@@ -54,9 +56,10 @@ public class DemoController {
 
     /**
      * 검색
+     *
      * @param indexName 인덱스명
      * @param fieldName 필드명
-     * @param value 필드값
+     * @param value     필드값
      * @return
      * @throws IOException
      */
@@ -91,5 +94,11 @@ public class DemoController {
                 excludeField,
                 excludeValue
         );
+    }
+
+    @GetMapping("/mapping")
+    public String getMapping(@RequestParam String indexName) throws IOException {
+        return demoService.getFieldType(indexName);
+
     }
 }

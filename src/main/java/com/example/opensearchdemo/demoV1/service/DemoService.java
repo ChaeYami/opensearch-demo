@@ -9,6 +9,7 @@ import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.mapping.FieldMapping;
+import org.opensearch.client.opensearch._types.mapping.Property;
 import org.opensearch.client.opensearch._types.query_dsl.*;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
@@ -22,10 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -235,47 +233,55 @@ public class DemoService {
      * @return 필드 타입
      * @throws IOException
      */
-    public String getFieldType(String index) throws IOException {
-        // 매핑 요청 생성
-        GetFieldMappingRequest mappingRequest = new GetFieldMappingRequest.Builder().index(index).fields("*").build();
+    public  Map<String, String> getFieldType(String index) throws IOException {
 
 
-        // 매핑 응답 가져오기
-        GetFieldMappingResponse mappingResponse = openSearchClient.indices().getFieldMapping(mappingRequest);
+        // 결과를 저장할 Map 생성
+        Map<String, String> fieldTypesMap = new HashMap<>();
 
-        // 매핑 정보 추출
-        Map<String, TypeFieldMappings> mappings = mappingResponse.result();
+        // GetMappingRequest 생성
+        GetMappingRequest request = new GetMappingRequest.Builder().index(index).build();
+        GetMappingResponse response = openSearchClient.indices().getMapping(request);
 
+        // 인덱스의 매핑 정보에서 properties 가져오기
+        Map<String, Property> properties = response.result().get(index).mappings().properties();
 
-
-        StringBuilder result = new StringBuilder();
-
-        // 매핑된 필드와 타입을 추출하여 문자열로 변환
-        for (Map.Entry<String, TypeFieldMappings> indexEntry : mappings.entrySet()) {
-            String indexName = indexEntry.getKey(); // 인덱스명
-            TypeFieldMappings typeFieldMappings = indexEntry.getValue(); // TypeFieldMappings 객체
-
-            result.append("Index: ").append(indexName).append("\n");
-
-            // TypeFieldMappings에서 필드와 필드 타입 추출
-            Map<String, FieldMapping> fields = typeFieldMappings.mappings();
-
-            for (Map.Entry<String, FieldMapping> fieldEntry : fields.entrySet()) {
-                String fieldName = fieldEntry.getKey(); // 필드명
-                FieldMapping fieldMapping = fieldEntry.getValue();
-
-/*
-                // 필드 타입 추출
-                String fieldType = fieldMapping.mapping().get("type").toString();
-
-                result.append("Field: ").append(fieldName).append(", Type: ").append(fieldType).append("\n");*/
-            }
+        // 모든 필드와 타입 저장 (재귀적 탐색)
+        for (Map.Entry<String, Property> entry : properties.entrySet()) {
+            String field = entry.getKey();
+            Property property = entry.getValue();
+            storeFieldType(field, property, "", fieldTypesMap);
         }
 
-        return result.toString();
-
+        // 필드:타입 맵 반환
+        return fieldTypesMap;
     }
 
+    // 재귀적으로 필드와 타입을 저장하는 메서드
+    private void storeFieldType(String fieldName, Property property, String parentPath, Map<String, String> fieldTypesMap) {
+        // 현재 필드의 전체 경로 계산
+        String fullPath = parentPath.isEmpty() ? fieldName : parentPath + "." + fieldName;
 
+        // 필드의 타입 저장
+        String fieldType = property._kind().toString();
+        fieldTypesMap.put(fullPath, fieldType);
+
+        // ObjectProperty 또는 NestedProperty일 경우, 각각의 하위 필드 탐색
+        if (property.isObject()) {
+            Map<String, Property> nestedProperties = property.object().properties();
+            if (nestedProperties != null) {
+                for (Map.Entry<String, Property> nestedEntry : nestedProperties.entrySet()) {
+                    storeFieldType(nestedEntry.getKey(), nestedEntry.getValue(), fullPath, fieldTypesMap);
+                }
+            }
+        } else if (property.isNested()) {
+            Map<String, Property> nestedProperties = property.nested().properties();
+            if (nestedProperties != null) {
+                for (Map.Entry<String, Property> nestedEntry : nestedProperties.entrySet()) {
+                    storeFieldType(nestedEntry.getKey(), nestedEntry.getValue(), fullPath, fieldTypesMap);
+                }
+            }
+        }
+    }
 
 }

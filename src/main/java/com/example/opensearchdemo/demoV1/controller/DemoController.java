@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/opensearch")
@@ -97,7 +98,7 @@ public class DemoController {
     }
 
     @GetMapping("/mapping")
-    public String getMapping(@RequestParam String indexName) throws IOException {
+    public Map<String, String> getMapping(@RequestParam String indexName) throws IOException {
         return demoService.getFieldType(indexName);
 
     }

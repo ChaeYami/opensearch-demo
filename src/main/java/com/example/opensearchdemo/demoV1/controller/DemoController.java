@@ -5,10 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,13 +25,14 @@ public class DemoController {
 
     /**
      * 전체 인덱스 목록을 반환합니다.
+     *
      * @return 인덱스 목록
      */
     @GetMapping("/indices")  // /api/cve/indices 경로에 대한 GET 요청 처리
     public List<JsonNode> getAllIndices() throws IOException {
 
-            List<JsonNode> indices = demoService.getAllIndices();  // 인덱스 목록 가져오기
-            return indices;  // 200 OK 응답으로 인덱스 목록 반환
+        List<JsonNode> indices = demoService.getAllIndices();  // 인덱스 목록 가져오기
+        return indices;  // 200 OK 응답으로 인덱스 목록 반환
 
     }
 
@@ -125,5 +123,10 @@ public class DemoController {
 
         // 필드별 집계 비율 계산
         return demoService.getFieldAggregation(index, field);
+    }
+
+    @DeleteMapping("/delete/{indexName}")
+    public String deleteIndex(@PathVariable String indexName) {
+        return demoService.deleteIndex(indexName);
     }
 }

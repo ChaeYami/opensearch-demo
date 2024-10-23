@@ -454,6 +454,25 @@ public class DemoService {
 
     }
 
+    public String deleteIndex(String indexName) {
+        try {
+            DeleteIndexRequest request = new DeleteIndexRequest.Builder()
+                    .index(indexName)
+                    .build();
+
+            DeleteIndexResponse deleteIndexResponse = openSearchClient.indices().delete(request);
+
+            if (deleteIndexResponse.acknowledged()) {
+                return "Index " + indexName + " has been successfully deleted.";
+            } else {
+                return "Index deletion was not acknowledged.";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error occurred while deleting index: " + e.getMessage();
+        }
+    }
+
 
 
 }

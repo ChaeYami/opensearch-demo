@@ -24,6 +24,9 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
+	implementation 'io.opentelemetry:opentelemetry-api:1.29.0'
+
+
 	// opensearch
 	implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
 	implementation 'org.opensearch.client:opensearch-java:2.8.1'
@@ -41,6 +44,8 @@ dependencies {
 	implementation 'org.apache.commons:commons-lang3:3.11'
 
 	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1'
+
+
 
 }
 

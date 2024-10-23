@@ -30,7 +30,9 @@ public class OpenSearchConfig {
 
     private static final String SCHEME = "http";
 
-    private static final String HOST = "211.254.212.171";
+//    private static final String HOST = "211.254.212.171";
+    private static final String HOST = "211.62.111.193";
+
 
 //    private static final String SCHEME = "https";
 //    private static final String HOST = "211.253.36.208";

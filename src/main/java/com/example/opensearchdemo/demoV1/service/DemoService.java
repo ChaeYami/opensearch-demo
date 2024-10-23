@@ -4,27 +4,27 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOrder;
-import org.opensearch.client.opensearch._types.mapping.FieldMapping;
+import org.opensearch.client.opensearch._types.aggregations.*;
 import org.opensearch.client.opensearch._types.mapping.Property;
-import org.opensearch.client.opensearch._types.query_dsl.*;
+import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
+import org.opensearch.client.opensearch._types.query_dsl.MatchQuery;
+import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.opensearch.client.opensearch._types.query_dsl.TermQuery;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.search.Hit;
-import org.opensearch.client.opensearch.indices.GetFieldMappingRequest;
-import org.opensearch.client.opensearch.indices.GetFieldMappingResponse;
-import org.opensearch.client.opensearch.indices.GetMappingRequest;
-import org.opensearch.client.opensearch.indices.GetMappingResponse;
-import org.opensearch.client.opensearch.indices.get_field_mapping.TypeFieldMappings;
+import org.opensearch.client.opensearch.indices.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.opensearch.client.opensearch._types.aggregations.CalendarInterval.Hour;
 
 @Service
 public class DemoService {
@@ -36,6 +36,28 @@ public class DemoService {
     public DemoService(OpenSearchClient openSearchClient, ObjectMapper objectMapper) {
         this.openSearchClient = openSearchClient;
         this.objectMapper = objectMapper;
+    }
+
+    /**
+     * 전체 인덱스 목록을 가져옵니다.
+     * @return 인덱스 이름 목록
+     * @throws IOException
+     */
+    public List<JsonNode> getAllIndices() throws IOException {
+        // OpenSearch에서 검색 요청
+        SearchResponse<JsonNode> searchResponse = openSearchClient.search(
+                b -> b.index("*"), JsonNode.class
+        );
+
+        // 검색 결과를 JSON 형태로 변환
+        List<Hit<JsonNode>> hits = searchResponse.hits().hits();
+        List<JsonNode> resultList = new ArrayList<>();
+
+        for (Hit<JsonNode> hit : hits) {
+            resultList.add(hit.source());
+        }
+
+        return resultList;
     }
 
     /**
@@ -283,5 +305,155 @@ public class DemoService {
             }
         }
     }
+
+    public String getFieldType(String indexName, String fieldName) throws IOException {
+        // 매핑 요청 생성
+        GetFieldMappingRequest mappingRequest = new GetFieldMappingRequest.Builder().index(indexName).fields(fieldName).build();
+
+
+        // 매핑 응답 가져오기
+        GetFieldMappingResponse mappingResponse = openSearchClient.indices().getFieldMapping(mappingRequest);
+
+
+        String type = mappingResponse.result().get(indexName).mappings().get(fieldName).mapping().get(fieldName)._kind().toString(); // 타입찾기
+
+        return type;
+
+    }
+
+    public Map<String, Double> getFieldAggregation(String index, String field) throws IOException {
+
+        String type = getFieldType(index, field);
+
+        // 1. Term Aggregation 쿼리 설정
+        SearchRequest.Builder requestBuilder = new SearchRequest.Builder()
+                .index(index)
+                .size(0);  // 검색 결과를 반환하지 않음 (집계만 필요)
+
+        if (type.equals("Text")) {
+            requestBuilder.aggregations("field_aggregation", a -> a
+                    .terms(t -> t
+                            .field(field + ".keyword")  // `keyword` 서브 필드 사용
+                            .size(10000)  // 전체 값을 집계하기 위해 충분히 큰 값을 설정
+                    )
+            );
+
+            // 2. 검색 요청 실행
+            SearchResponse<Void> response = openSearchClient.search(requestBuilder.build(), Void.class);
+
+            // 3. 전체 문서 개수 (total hits) 가져오기
+            long totalDocs = response.hits().total().value();
+
+            // 4. Aggregation 결과 가져오기
+            Aggregate aggregate = response.aggregations().get("field_aggregation");
+
+            // 결과를 저장할 Map 생성 (값 -> 비율)
+            Map<String, Double> result = new HashMap<>();
+
+
+            // 5. 집계된 값들 순회하며 비율 계산
+            if (aggregate.isSterms()) {
+                // StringTerms 처리
+                for (StringTermsBucket bucket : aggregate.sterms().buckets().array()) {
+                    String key = bucket.key().toString(); // 필드의 값
+                    System.out.println(key);
+                    long docCount = bucket.docCount(); // 해당 값의 문서 개수
+                    double percentage = (double) docCount / totalDocs * 100;
+                    result.put(key, percentage);
+                }
+            } else {
+                System.out.println("Unsupported aggregation type");
+            }
+
+            // 6. 비율 결과 반환
+            return result;
+
+
+        } else if (type.equals("Date")) {
+            // DateHistogram 집계 추가
+            requestBuilder.aggregations("date_histogram", a -> a
+                    .dateHistogram(d -> d
+                            .field(field)
+                            .calendarInterval(Hour)
+                    )
+            );
+
+            // 2. 검색 요청 실행
+            SearchResponse<Void> response = openSearchClient.search(requestBuilder.build(), Void.class);
+
+            // 3. 전체 문서 개수 (total hits) 가져오기
+            long totalDocs = response.hits().total().value();
+
+            // 4. Aggregation 결과 가져오기
+            Aggregate dateAgg = response.aggregations().get("date_histogram");
+
+            // 결과를 저장할 Map 생성 (값 -> 비율)
+            Map<String, Double> result = new HashMap<>();
+
+
+            // 5. 집계된 값들 순회하며 비율 계산
+            if (dateAgg.isDateHistogram()) {
+                for (DateHistogramBucket bucket : dateAgg.dateHistogram().buckets().array()) {
+                    String key = bucket.keyAsString();
+                    long docCount = bucket.docCount();
+                    result.put(key, ((double) docCount / totalDocs )* 100);
+                }
+            } else {
+                System.out.println("Unsupported aggregation type");
+            }
+
+            // 6. 비율 결과 반환
+            return result;
+
+        }else {
+            requestBuilder.aggregations("field_aggregation", a -> a
+                    .terms(t -> t
+                            .field(field)
+                            .size(10000)  // 상위 10개의 값만 집계
+                    )
+            );
+            // 2. 검색 요청 실행
+            SearchResponse<Void> response = openSearchClient.search(requestBuilder.build(), Void.class);
+
+            // 3. 전체 문서 개수 (total hits) 가져오기
+            long totalDocs = response.hits().total().value();
+
+            // 4. Aggregation 결과 가져오기
+            Aggregate aggregate = response.aggregations().get("field_aggregation");
+
+            // 결과를 저장할 Map 생성 (값 -> 비율)
+            Map<String, Double> result = new HashMap<>();
+
+
+            // 5. 집계된 값들 순회하며 비율 계산
+            if (aggregate.isLterms()) {
+                // LongTerms 처리
+                for (LongTermsBucket bucket : aggregate.lterms().buckets().array()) {
+                    String key = bucket.key().toString(); // 필드의 값
+                    long docCount = bucket.docCount(); // 해당 값의 문서 개수
+                    double percentage = (double) docCount / totalDocs * 100;
+                    result.put(key, percentage);
+                }
+            } else if (aggregate.isDterms()) {
+                // DoubleTerms 처리
+                for (DoubleTermsBucket bucket : aggregate.dterms().buckets().array()) {
+                    String key = String.valueOf(bucket.key()); // 필드의 값
+                    long docCount = bucket.docCount(); // 해당 값의 문서 개수
+                    double percentage = (double) docCount / totalDocs * 100;
+                    result.put(key, percentage);
+                }
+            } else {
+                System.out.println("Unsupported aggregation type");
+            }
+
+            // 6. 비율 결과 반환
+            return result;
+
+        }
+
+
+    }
+
+
 
 }

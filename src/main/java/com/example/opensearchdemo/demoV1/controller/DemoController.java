@@ -25,6 +25,19 @@ public class DemoController {
         this.demoService = demoService;
     }
 
+
+    /**
+     * 전체 인덱스 목록을 반환합니다.
+     * @return 인덱스 목록
+     */
+    @GetMapping("/indices")  // /api/cve/indices 경로에 대한 GET 요청 처리
+    public List<JsonNode> getAllIndices() throws IOException {
+
+            List<JsonNode> indices = demoService.getAllIndices();  // 인덱스 목록 가져오기
+            return indices;  // 200 OK 응답으로 인덱스 목록 반환
+
+    }
+
     /**
      * 인덱스 검색 (전체 문서 가져오기)
      *
@@ -101,5 +114,16 @@ public class DemoController {
     public Map<String, String> getMapping(@RequestParam String indexName) throws IOException {
         return demoService.getFieldType(indexName);
 
+    }
+
+
+    // 집계
+    @GetMapping("/field-aggregation")
+    public Map<String, Double> getFieldAggregation(
+            @RequestParam String index,
+            @RequestParam String field) throws IOException {
+
+        // 필드별 집계 비율 계산
+        return demoService.getFieldAggregation(index, field);
     }
 }

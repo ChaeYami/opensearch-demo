@@ -2,6 +2,7 @@ package com.example.opensearchdemo.cvedata;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.Result;
 import org.opensearch.client.opensearch.core.IndexRequest;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 
 @Service
+@Slf4j
 public class CVEOpenSearchService {
 
     private final OpenSearchClient openSearchClient;
@@ -40,9 +42,9 @@ public class CVEOpenSearchService {
         );
 
         if (indexResponse.result().equals(Result.Created)) {
-            System.out.println("success");
+            log.info("Successfully stored CVE data in OpenSearch.");
         } else {
-            System.out.println("failed");
+            log.info("Failed to store CVE data in OpenSearch.");
         }
     }
 }
